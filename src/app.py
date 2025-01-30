@@ -5,8 +5,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 # Cargar el modelo KNN y el DataFrame
 # Suponiendo que los archivos 'knn_model.pkl' y 'movies_df.pkl' están en la misma carpeta
-knn_model = pickle.load(open('src/knn_model.pkl', 'rb'))
-df = pd.read_csv("src/base_movies.csv")
+knn_model = pickle.load(open('knn_model.pkl', 'rb'))
+df = pd.read_csv("base_movies.csv")
 
 
 vect = TfidfVectorizer(token_pattern=r'\b\w+\b', lowercase=True)
