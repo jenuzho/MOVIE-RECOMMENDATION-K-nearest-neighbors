@@ -1,32 +1,37 @@
 from flask import Flask, render_template, request
 import pandas as pd
+import pickle
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Inicializar Flask
+# Cargar el modelo KNN y el DataFrame
+# Suponiendo que los archivos 'knn_model.pkl' y 'movies_df.pkl' están en la misma carpeta
+knn_model = pickle.load(open('src/knn_model.pkl', 'rb'))
+df = pd.read_csv("src/base_movies.csv")
+
+
+vect = TfidfVectorizer(token_pattern=r'\b\w+\b', lowercase=True)
+matrix = vect.fit_transform(df['tags'])
+
 app = Flask(__name__)
 
-# Cargar el dataset
-movies = pd.read_csv("src/base_movies.csv")
+# Función para obtener recomendaciones
+def get_movie_recommendations(movie_title):
+    movie_index = df[df["title"] == movie_title].index[0]
+    distances, indices = knn_model.kneighbors(matrix[movie_index])
+    # Guardamos la distancia, pero la excluimos del output
+    similar_movies = [(df["title"][i], distances[0][j]) for j, i in enumerate(indices[0])]
+    return similar_movies[1:]
 
-# Ruta de inicio
-@app.route("/")
-def index():
-    return render_template("index.html")
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-# Ruta para procesar recomendaciones por género
-@app.route("/recommend_by_genre", methods=["POST"])
-def recommend_by_genre():
-    # Obtener el género seleccionado por el usuario
-    selected_genre = request.form.get("genre")
 
-    # Filtrar películas por género
-    filtered_movies = movies[movies["genres"].str.contains(selected_genre, na=False)]
+@app.route('/recommend', methods=['POST'])
+def recommend():
+    movie_title = request.form['movie']  # Obtenemos el título de la película desde el formulario
+    recommendations = get_movie_recommendations(movie_title)
+    return render_template('index.html', recommendations=recommendations, selected_movie=movie_title)
 
-    # Obtener los títulos de las primeras 10 películas del género
-    recommendations = filtered_movies.head(10)[["title", "poster_path"]].to_dict(orient="records")
-
-    # Renderizar la página con las recomendaciones
-    return render_template("index.html", recommendations=recommendations)
-
-# Ejecutar la aplicación localmente
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
